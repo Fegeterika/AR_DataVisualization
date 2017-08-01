@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title></title>
+
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<!-- three.js library -->
+		<script src='vendor/three.js/build/three.js'></script>
+		<!-- jsartookit -->
+		<script src="vendor/jsartoolkit5/build/artoolkit.min.js"></script>
+		<script src="vendor/jsartoolkit5/js/artoolkit.api.js"></script>
+		<!-- include threex.artoolkit -->
+		<script src="vendor/threex-artoolkitsource.js"></script>
+		<script src="vendor/threex-artoolkitcontext.js"></script>
+		<script src="vendor/threex-arbasecontrols.js"></script>
+		<script src="vendor/threex-armarkercontrols.js"></script>
+		<script>THREEx.ArToolkitContext.baseURL = './'</script>
+
+	</head>
+	<body style='margin : 0px; overflow: hidden; font-family: Monospace;'>
+		<div style='position: absolute; top: 10px; width: 100%; text-align: center; z-index: 1;'>
+			<p class='title'>Eccella 2017 ERM - Data Visualization AR Demo</p>
+		</div>
+		<script>
+
+			// Data Initialization -----------------------------------------------------------
+			// Configure input data for the demo
+
+			var inputParamOne = [];
+			var inputParamTwo = [];
+
+			var inputTextColor = ["#ff2e16", "#3297bc", "#7e50b2", "#2a5132", "#d4d668", "#fc83e6", "#706c66"];
+			var inputText = ["D", "E", "C", "F", "B", "G", "A"];
+			var inputDataOne = [1, 2.5, 6.5, 1, 3, 3.5, 2];
+			var inputDataTwo = [1, 3, 10, 3, 4, 3.5, 5.5];
+
+			var inputBarDim = 0.2;
+			var barOffset = 0.3;
+			var maxBarHeight = 2;
+
+			for (var i = 0; i < 7; i++) {
+				inputParamOne.push({
+					tColor: inputTextColor[i],
+					barHgt: inputDataOne[i] / Math.max(Math.max(...inputDataOne), Math.max(...inputDataTwo)) * maxBarHeight,
+					barOffset: Math.ceil(i / 2) * barOffset * (i % 2 == 0 ? -1 : 1)
+				});
+				inputParamTwo.push({
+					tColor: inputTextColor[i],
+					barHgt: inputDataTwo[i] / Math.max(Math.max(...inputDataOne), Math.max(...inputDataTwo)) * maxBarHeight,
+					barOffset: Math.ceil(i / 2) * barOffset * (i % 2 == 0 ? -1 : 1)
+				});
+			}
+
+			// AR Components Initialization --------------------------------------------------
+			// initialize renderer
+			var renderer = new THREE.WebGLRenderer({
+				antialias: true,
+				alpha: true
+			});
+			renderer.setClearColor(new THREE.Color('lightgrey'), 0)
+			renderer.setSize( 1280, 960 );
+			renderer.domElement.style.position = 'absolute'
+			renderer.domElement.style.top = '0px'
+			renderer.domElement.style.left = '0px'
+			document.body.appendChild( renderer.domElement );
+
+			// array of functions for the rendering loop
+			var onRenderFcts = [];
+
+			// init scene
+			var scene = new THREE.Scene();
+			var camera = new THREE.Camera();
+			scene.add(camera);
+
+			// Handle Artoolkit Source ------------------------------------------------------
+			var arToolkitSource = new THREEx.ArToolkitSource({
+				sourceType : 'webcam',
+			})
+
+			arToolkitSource.init(function onReady(){
+				onResize()
+			})
+			
+			// handle resize
+			window.addEventListener('resize', function(){
+				onResize()
+			})
+
+			function onResize(){
+				arToolkitSource.onResize()	
+				arToolkitSource.copySizeTo(renderer.domElement)	
+				if(arToolkitContext.arController !== null){
+					arToolkitSource.copySizeTo(arToolkitContext.arController.canvas)	
+				}	
+			}
+
+			// Initialize arToolKit -----------------------------------------------------------
+			var arToolkitContext = new THREEx.ArToolkitContext({
+				cameraParametersUrl: THREEx.ArToolkitContext.baseURL + './data/camera_para.dat',
+				detectionMode: 'mono',
+			})
+
+			arToolkitContext.init(function onCompleted(){
+				// copy projection matrix to camera
+				camera.projectionMatrix.copy( arToolkitContext.getProjectionMatrix() );
+			})
+
+			// update artoolkit on every frame - onRenderFct
+			onRenderFcts.push(function(){
+				if(arToolkitSource.ready === false)	return
+
+				arToolkitContext.update( arToolkitSource.domElement )
+			})
+			
+			;(function(){
+			
+				// Define AR Markers ----------------------------------------------------------
+				// Initialize title marker
+				var markerRoot0 = new THREE.Group;
+				markerRoot0.name = 'marker0';
+				scene.add(markerRoot0);
+				var markerControls = new THREEx.ArMarkerControls(arToolkitContext, markerRoot0, {
+					type: 'pattern',
+					patternUrl: THREEx.ArToolkitContext.baseURL + './data/mgTitle.patt',
+				});
+
+				var spriteMap = new THREE.TextureLoader().load('./texture/title.jpg');
+				var spriteMaterial = new THREE.SpriteMaterial({
+					map: spriteMap
+				});
+				var sprite = new THREE.Sprite(spriteMaterial);
+				sprite.scale.set(8, 4, 1)
+				markerRoot0.add(sprite);
+
+				// Initialize conc marker
+				var markerRoot0 = new THREE.Group;
+				markerRoot0.name = 'marker3';
+				scene.add(markerRoot0);
+				var markerControls = new THREEx.ArMarkerControls(arToolkitContext, markerRoot0, {
+					type: 'pattern',
+					patternUrl: THREEx.ArToolkitContext.baseURL + './data/mgConc.patt',
+				});
+
+				var spriteMap = new THREE.TextureLoader().load('./texture/conc.jpg');
+				var spriteMaterial = new THREE.SpriteMaterial({
+					map: spriteMap
+				});
+				var sprite = new THREE.Sprite(spriteMaterial);
+				sprite.scale.set(4, 4, 1)
+				markerRoot0.add(sprite);
+
+				// Initialize marker1
+				var markerRoot1 = new THREE.Group;
+				markerRoot1.name = 'marker1';
+				scene.add(markerRoot1);
+				var markerControls = new THREEx.ArMarkerControls(arToolkitContext, markerRoot1, {
+					type : 'pattern',
+					patternUrl: THREEx.ArToolkitContext.baseURL + './data/mgOne.patt',
+				});
+
+				// Add a base slab for the graphs
+				var geometry = new THREE.BoxGeometry(2.4, 0.1, 0.7);
+				var material = new THREE.MeshBasicMaterial({
+					transparent : false,
+					color : "#8a8c8e",
+					side: THREE.DoubleSide
+				});
+				var mesh = new THREE.Mesh(geometry, material);
+				mesh.position.set(0, 0.05, 0.1);
+				markerRoot1.add(mesh);
+
+					for (var i = 0; i < 7; i++) {
+						var geometry = new THREE.BoxGeometry(inputBarDim,inputParamOne[i].barHgt,inputBarDim)
+						var material = new THREE.MeshBasicMaterial({
+							transparent : true,
+							color : inputParamOne[i].tColor,
+							opacity: 0.8,
+							side: THREE.DoubleSide
+						}); 
+
+						var mesh = new THREE.Mesh( geometry, material );
+
+						mesh.position.set(inputParamOne[i].barOffset, inputParamOne[i].barHgt / 2, 0);
+						markerRoot1.add( mesh );
+					}
+
+				// Add text labels
+				var loader = new THREE.FontLoader();
+				loader.load('./vendor/three-r82.js/examples/fonts/helvetiker_bold.typeface.JSON', function (font) {
+					// hardcode for now... find solution later
+					var inputTextColor = ["#ff2e16", "#3297bc", "#7e50b2", "#2a5132", "#d4d668", "#fc83e6", "#706c66"];
+					var inputText = ["D", "E", "C", "F", "B", "G", "A"];
+					var inputDataOne = [1, 2.5, 6.5, 1, 3, 3.5, 2];
+					var inputDataTwo = [1, 3, 10, 3, 4, 3.5, 5.5];
+
+					var inputBarDim = 0.2;
+					var barOffset = 0.3;
+					var maxBarHeight = 2;
+
+					for (var i = 0; i < 7; i++) {
+						inputParamOne.push({
+							tColor: inputTextColor[i],
+							barHgt: inputDataOne[i] / Math.max(Math.max(...inputDataOne), Math.max(...inputDataTwo)) * maxBarHeight,
+							barOffset: Math.ceil(i / 2) * barOffset * (i % 2 == 0 ? -1 : 1)
+						});
+					}
+					// hardcode for now... find solution later
+
+					var quat = new THREE.Quaternion();
+					quat.setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
+
+					for (var i = 0; i < 7; i++) {
+						var geometry = new THREE.TextGeometry(inputText[i], {
+							font: font,
+							size: 0.2,
+							height: 0.002,
+							curveSegments: 12,
+							bevelEnabled: false,
+							bevelThickness: 1,
+							bevelSize: 1,
+							bevelSegments: 5
+						});
+						var material = new THREE.MeshBasicMaterial({
+							transparent : false,
+							color : inputParamOne[i].tColor,
+							side: THREE.DoubleSide
+						});
+						var mesh = new THREE.Mesh(geometry, material);
+						mesh.position.set(inputParamOne[i].barOffset - 0.1, 0.2, 0.4);
+						mesh.applyQuaternion(quat);
+						markerRoot1.add(mesh);
+					}
+
+					for (var i = 0; i < 7; i++) {
+						var geometry = new THREE.TextGeometry(inputDataOne[i], {
+							font: font,
+							size: 0.12,
+							height: 0.002,
+							curveSegments: 12,
+							bevelEnabled: false,
+							bevelThickness: 1,
+							bevelSize: 1,
+							bevelSegments: 5
+						});
+						var material = new THREE.MeshBasicMaterial({
+							transparent : false,
+							color : "#ffffff",
+							side: THREE.DoubleSide
+						});
+						var mesh = new THREE.Mesh(geometry, material);
+						mesh.position.set(inputParamOne[i].barOffset - 0.05, inputParamOne[i].barHgt + 0.2, 0);
+						markerRoot1.add(mesh);
+					}
+				});
+				
+				// Initialize marker2
+				var markerRoot2 = new THREE.Group;
+				markerRoot2.name = 'marker2';
+				scene.add(markerRoot2);
+				var markerControls = new THREEx.ArMarkerControls(arToolkitContext, markerRoot2, {
+					type : 'pattern',
+					patternUrl : THREEx.ArToolkitContext.baseURL + './data/mgTwo.patt',
+				});
+
+				// Add a base slab for the graphs
+				var geometry = new THREE.BoxGeometry(2.4, 0.1, 0.7);
+				var material = new THREE.MeshBasicMaterial({
+					transparent : false,
+					color : "#8a8c8e",
+					side: THREE.DoubleSide
+				});
+				var mesh = new THREE.Mesh(geometry, material);
+				mesh.position.set(0, 0.05, 0.1);
+				markerRoot2.add(mesh);
+
+				// add a bar graphs on marker 2
+				for (var i = 0; i < 7; i++) {
+					var geometry = new THREE.BoxGeometry(inputBarDim,inputParamTwo[i].barHgt,inputBarDim)
+					var material = new THREE.MeshBasicMaterial({
+						transparent : true,
+						color : inputParamTwo[i].tColor,
+						opacity: 0.8,
+						side: THREE.DoubleSide
+					}); 
+
+					var mesh = new THREE.Mesh( geometry, material );
+
+					mesh.position.set(inputParamTwo[i].barOffset, inputParamTwo[i].barHgt / 2, 0);
+					markerRoot2.add( mesh );
+				}
+
+				// Add text labels
+				var loader = new THREE.FontLoader();
+				loader.load('./vendor/three-r82.js/examples/fonts/helvetiker_bold.typeface.JSON', function (font) {
+					// hardcode for now... find solution later
+					var inputTextColor = ["#ff2e16", "#3297bc", "#7e50b2", "#2a5132", "#d4d668", "#fc83e6", "#706c66"];
+					var inputText = ["D", "E", "C", "F", "B", "G", "A"];
+					var inputDataOne = [1, 2.5, 6.5, 1, 3, 3.5, 2];
+					var inputDataTwo = [1, 3, 10, 3, 4, 3.5, 5.5];
+
+					var inputBarDim = 0.2;
+					var barOffset = 0.3;
+					var maxBarHeight = 2;
+
+					for (var i = 0; i < 7; i++) {
+						inputParamTwo.push({
+							tColor: inputTextColor[i],
+							barHgt: inputDataTwo[i] / Math.max(Math.max(...inputDataOne), Math.max(...inputDataTwo)) * maxBarHeight,
+							barOffset: Math.ceil(i / 2) * barOffset * (i % 2 == 0 ? -1 : 1)
+						});
+					}
+					// hardcode for now... find solution later
+
+					var quat = new THREE.Quaternion();
+					quat.setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2);
+
+					for (var i = 0; i < 7; i++) {
+						var geometry = new THREE.TextGeometry(inputText[i], {
+							font: font,
+							size: 0.2,
+							height: 0.002,
+							curveSegments: 12,
+							bevelEnabled: false,
+							bevelThickness: 1,
+							bevelSize: 1,
+							bevelSegments: 5
+						});
+						var material = new THREE.MeshBasicMaterial({
+							transparent : false,
+							color : inputParamTwo[i].tColor,
+							side: THREE.DoubleSide
+						});
+						var mesh = new THREE.Mesh(geometry, material);
+						mesh.position.set(inputParamTwo[i].barOffset - 0.1, 0.2, 0.4);
+						mesh.applyQuaternion(quat);
+						markerRoot2.add(mesh);
+					}
+
+					for (var i = 0; i < 7; i++) {
+						var geometry = new THREE.TextGeometry(inputDataTwo[i], {
+							font: font,
+							size: 0.12,
+							height: 0.002,
+							curveSegments: 12,
+							bevelEnabled: false,
+							bevelThickness: 1,
+							bevelSize: 1,
+							bevelSegments: 5
+						});
+						var material = new THREE.MeshBasicMaterial({
+							transparent : false,
+							color : "#ffffff",
+							side: THREE.DoubleSide
+						});
+						var mesh = new THREE.Mesh(geometry, material);
+						mesh.position.set(inputParamTwo[i].barOffset - 0.05, inputParamTwo[i].barHgt + 0.2, 0);
+						markerRoot2.add(mesh);
+					}
+				});
+			})();
+
+			(function(){
+				
+				var markerRoot1 = scene.getObjectByName('marker1')
+				var markerRoot2 = scene.getObjectByName('marker2')
+				
+				var container = new THREE.Group
+				scene.add(container)
+
+				onRenderFcts.push(function() {
+					if(markerRoot1.visible === true && markerRoot2.visible === true) {
+						container.visible = true;
+					} else {
+						container.visible = false;
+					}
+				});
+				
+				// Initialize line mesh for title display
+				var material = new THREE.LineDashedMaterial( {
+					color: 'black',
+					linewidth: 2,
+					dashSize: 1,
+					gapSize: 0.5,
+				} );
+
+				var geometry = new THREE.Geometry();
+				geometry.vertices.push(new THREE.Vector3(1, 0, -3));
+				geometry.vertices.push(new THREE.Vector3(-1, 0, -3));
+
+				var lineMesh = new THREE.Line(geometry, material);
+				container.add(lineMesh)
+
+				// update lineMesh
+				onRenderFcts.push(function(){
+					var geometry = lineMesh.geometry;
+					geometry.vertices[0].copy(markerRoot1.position);
+					geometry.vertices[1].copy(markerRoot2.position);
+					geometry.verticesNeedUpdate = true;
+
+					geometry.computeBoundingSphere();
+					geometry.computeLineDistances();
+					
+					var length = markerRoot1.position.distanceTo(markerRoot2.position);
+					lineMesh.material.scale = length * 10;
+					lineMesh.material.needsUpdate = true;
+				})
+
+				// Initialize line geometry for title
+				// build texture
+				var canvas = document.createElement( 'canvas' );
+				canvas.width = 256;
+				canvas.height = 128;
+				var context = canvas.getContext( '2d' );
+				var texture = new THREE.CanvasTexture( canvas );
+
+				// build sprite
+				var material = new THREE.SpriteMaterial({
+					map: texture, 
+					color: 0xffffff, 
+				});
+				var sprite = new THREE.Sprite( material );
+				sprite.scale.multiplyScalar(2)
+				container.add(sprite)
+
+				// upload measure
+				onRenderFcts.push(function(){
+					// update sprite position
+					var mPos1 = new THREE.Vector3(0, 0, 0);
+					var mPos2 = new THREE.Vector3(0, 0, 0);
+
+					mPos1.copy(markerRoot1.position);
+					mPos2.copy(markerRoot2.position);
+
+					sprite.position.addVectors(mPos2, mPos2).multiplyScalar(1/2)
+
+					var text = "Max Total Hours: " + (Math.max(...inputDataOne) + inputDataTwo[inputDataOne.indexOf(Math.max(...inputDataOne))]);
+					
+					// put the text in the sprite
+					context.font = '20px bold arial';
+					context.clearRect( 0, 0, canvas.width, canvas.height );
+					context.fillText(text, canvas.width/4, 3*canvas.height/4 );
+					sprite.material.map.needsUpdate = true;
+				})
+				
+			})()
+				
+				// Render the scene on the screen
+				onRenderFcts.push(function(){
+					renderer.render( scene, camera );
+				})
+
+				// run the rendering loop
+				var lastTimeMsec = null
+				requestAnimationFrame(function animate(nowMsec){
+					// keep looping
+					requestAnimationFrame( animate );
+					// measure time
+					lastTimeMsec = lastTimeMsec || nowMsec-1000/60
+					var deltaMsec = Math.min(200, nowMsec - lastTimeMsec)
+					lastTimeMsec = nowMsec
+					// call each update function
+					onRenderFcts.forEach(function(onRenderFct){
+						onRenderFct(deltaMsec/1000, nowMsec/1000)
+					})
+				});
+		</script>
+		<style>
+
+			p .title {
+				text: #ffffff;
+			}
+
+		</style>
+	</body>
+</html>
